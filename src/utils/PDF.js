@@ -1,8 +1,11 @@
 import { readAsArrayBuffer } from './asyncReader.js';
 import { fetchFont, getAsset } from './prepareAssets';
 import { noop } from './helper.js';
+import axios from 'axios';
 
-export async function save(pdfFile, objects, name) {
+const apiServerUri = 'https://pdf-sign-api-test.athir.codes';
+
+export async function save(pdfFile, objects, name, id) {
   const PDFLib = await getAsset('PDFLib');
   const download = await getAsset('download');
   const makeTextPDF = await getAsset('makeTextPDF');
@@ -93,7 +96,23 @@ export async function save(pdfFile, objects, name) {
   await Promise.all(pagesProcesses);
   try {
     const pdfBytes = await pdfDoc.save();
-    download(pdfBytes, name, 'application/pdf');
+    // download(pdfBytes, name, 'application/pdf');
+
+    const formData = new FormData();
+    const fileBlob = new Blob([pdfBytes], { type: 'application/pdf',  originalName: name});
+    formData.append('file', fileBlob, name, {
+      type: 'application/pdf',
+      name: name,
+      originalName: name
+    });
+    
+    console.log('formData', formData.get('file'));
+    axios.post(apiServerUri + '/sign/' + id, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+
   } catch (e) {
     console.log('Failed to save PDF.');
     throw e;
